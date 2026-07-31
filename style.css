@@ -33,7 +33,7 @@ main {
   margin: 1rem 0;
 }
 
-/* General Container Styling */
+/* Card layout & display control */
 .card {
   background-color: #1c2541;
   border-radius: 12px;
@@ -42,6 +42,7 @@ main {
   text-align: center;
 }
 
+/* Strict hidden utility class to prevent lobby/game elements from overlapping */
 .hidden {
   display: none !important;
 }
@@ -73,6 +74,7 @@ main {
   padding: 0.5rem;
   border-radius: 6px;
   margin: 0.5rem 0;
+  user-select: all;
 }
 
 .small-text {
@@ -167,15 +169,15 @@ button:disabled {
 
 /* Battleship Cell States */
 .cell.ship {
-  background-color: #64748b; /* Player's ship segment */
+  background-color: #64748b;
 }
 
 .cell.hit {
-  background-color: #ef4444 !important; /* Direct hit (Red) */
+  background-color: #ef4444 !important;
 }
 
 .cell.miss {
-  background-color: #38bdf8 !important; /* Water miss (Light Blue) */
+  background-color: #38bdf8 !important;
 }
 
 footer {
