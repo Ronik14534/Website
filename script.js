@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isHost = false;
   let isMyTurn = false;
   let broadcastChannel = null;
+  let gameStarted = false;
 
   // Local & Game state tracking
   let myBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
@@ -23,27 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const joinCodeInput = document.getElementById('join-code-input');
   const joinBtn = document.getElementById('join-btn');
   const turnStatus = document.getElementById('turn-status');
+  const readinessBanner = document.getElementById('readiness-banner');
   const myBoardElem = document.getElementById('my-board');
   const enemyBoardElem = document.getElementById('enemy-board');
   const rotateBtn = document.getElementById('rotate-btn');
   const readyBtn = document.getElementById('ready-btn');
 
-  // Helper to generate a 6-character uppercase room code
+  // Helper to generate a 6-character room code
   function generateCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
-  // Initialize Room Setup with Local Fallback support
+  // Initialize Room Setup
   function initializeRoom() {
     roomCode = generateCode();
     myCodeDisplay.textContent = roomCode;
     connStatus.textContent = "Room Ready! Share your room code to start.";
-
-    // Set up Local Browser Broadcast Channel to guarantee offline/local tab connection
     setupLocalChannel(roomCode);
   }
 
-  // Setup communication channel using BroadcastChannel API
+  // Set up communication channel using BroadcastChannel API
   function setupLocalChannel(code) {
     if (broadcastChannel) broadcastChannel.close();
 
@@ -53,14 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Host auto-generates room code on load
+  // Auto-generate room code on load
   initializeRoom();
 
   // Handle joining a room code
   joinBtn.addEventListener('click', () => {
     const inputCode = joinCodeInput.value.trim().toUpperCase();
     if (inputCode.length < 5) {
-      alert("Please enter a valid 6-character room code!");
+      alert("Please enter a valid room code!");
       return;
     }
 
@@ -68,11 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
     isHost = false;
     isMyTurn = false;
 
-    // Connect to host's room channel
     setupLocalChannel(roomCode);
 
-    // Notify host that player 2 joined
-    broadcastChannel.postMessage({ type: 'PLAYER_JOINED' });
+    // Broadcast join request to Host
+    sendMessage({ type: 'PLAYER_JOINED' });
     switchToGameScreen();
   });
 
@@ -81,10 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
     lobbySection.classList.add('hidden');
     gameWorkspace.classList.remove('hidden');
     turnStatus.textContent = `Place your ship (Length: ${SHIPS[currentShipIndex]})`;
+    readinessBanner.textContent = "Placement Phase";
     renderGridBoards();
   }
 
-  // Send message over network channel
+  // Send message over channel
   function sendMessage(payload) {
     if (broadcastChannel) {
       broadcastChannel.postMessage(payload);
@@ -93,19 +93,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Process incoming networking signals
   function handleNetworkMessage(data) {
-    if (data.type === 'PLAYER_JOINED' && !isHost && myCodeDisplay.textContent === roomCode) {
-      isHost = true;
-      isMyTurn = true;
-      sendMessage({ type: 'HOST_ACKNOWLEDGE' });
-      switchToGameScreen();
+    if (data.type === 'PLAYER_JOINED') {
+      // Host accepts player 2
+      if (!isHost && myCodeDisplay.textContent === roomCode) {
+        isHost = true;
+        isMyTurn = true; // Host shoots first
+        sendMessage({ type: 'HOST_ACKNOWLEDGE' });
+        switchToGameScreen();
+      }
     } 
-    else if (data.type === 'HOST_ACKNOWLEDGE' && !isHost) {
+    else if (data.type === 'HOST_ACKNOWLEDGE') {
       connStatus.textContent = "Connected to Host!";
     }
-    else if (data.type === 'READY') {
+    else if (data.type === 'PLAYER_READY') {
+      // Opponent clicked Ready Up!
       opponentReady = true;
-      checkStartGame();
-    } 
+      readinessBanner.textContent = "⚡ Opponent is READY!";
+      checkBothReady();
+    }
+    else if (data.type === 'START_GAME') {
+      // Synchronized game start command
+      startGameSession();
+    }
     else if (data.type === 'ATTACK') {
       // Opponent shot at our grid
       const isHit = myBoard[data.row][data.col] === 1;
@@ -117,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (checkDefeat()) {
         sendMessage({ type: 'GAME_OVER' });
         turnStatus.textContent = "❌ Defeat! All your ships were destroyed!";
+        readinessBanner.textContent = "Game Over";
       } else {
         isMyTurn = true;
         updateTurnBanner();
@@ -129,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     else if (data.type === 'GAME_OVER') {
       turnStatus.textContent = "🎉 Victory! You sank all enemy battleships!";
+      readinessBanner.textContent = "Game Over";
     }
   }
 
@@ -166,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Ship Placement Logic
   function placeShipSegment(r, c) {
-    if (currentShipIndex >= SHIPS.length) return;
+    if (gameStarted || currentShipIndex >= SHIPS.length) return;
 
     const shipLen = SHIPS[currentShipIndex];
 
@@ -213,21 +224,33 @@ document.addEventListener('DOMContentLoaded', () => {
     myReady = true;
     readyBtn.disabled = true;
     readyBtn.textContent = "Waiting for Opponent...";
-    
-    sendMessage({ type: 'READY' });
-    checkStartGame();
+    readinessBanner.textContent = "⏳ You are READY!";
+
+    // Broadcast READY state to opponent
+    sendMessage({ type: 'PLAYER_READY' });
+    checkBothReady();
   });
 
-  function checkStartGame() {
+  // Check if both players are ready and trigger match start
+  function checkBothReady() {
     if (myReady && opponentReady) {
-      document.getElementById('setup-controls').classList.add('hidden');
-      updateTurnBanner();
+      // Broadcast START_GAME to sync both sides
+      sendMessage({ type: 'START_GAME' });
+      startGameSession();
     }
+  }
+
+  // Lock placement controls and start the battle
+  function startGameSession() {
+    gameStarted = true;
+    document.getElementById('setup-controls').classList.add('hidden');
+    readinessBanner.textContent = "⚔️ BATTLE IN PROGRESS";
+    updateTurnBanner();
   }
 
   // Fire attack at enemy grid
   function handleAttack(r, c) {
-    if (!myReady || !opponentReady || !isMyTurn) return;
+    if (!gameStarted || !isMyTurn) return;
 
     const cell = enemyBoardElem.querySelector(`[data-row='${r}'][data-col='${c}']`);
     if (cell.classList.contains('hit') || cell.classList.contains('miss')) return;
