@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Online Battleship | My Web Arcade</title>
 
-  <!-- External CSS -->
+  <!-- External CSS file -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- PeerJS Library for Peer-to-Peer Online Multiplayer Networking -->
+  <!-- PeerJS Library for WebRTC networking -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-  <!-- Main header -->
+  <!-- Main header section -->
   <header>
     <h1>⚓ Online Battleship Arcade</h1>
     <p>Host or join a game online with a room code!</p>
@@ -23,7 +23,7 @@
     <!-- Lobby Control Panel: Host or Join via Room Code -->
     <section id="lobby" class="card">
       <h2>Game Lobby</h2>
-      <p id="connection-status">Connecting to network server...</p>
+      <p id="connection-status">Initializing room connection...</p>
 
       <div class="lobby-controls">
         <!-- Room Hosting Section -->
@@ -43,18 +43,18 @@
       </div>
     </section>
 
-    <!-- Main Gameplay Workspace (Hidden until connected) -->
+    <!-- Main Gameplay Workspace (Hidden by default until connected) -->
     <section id="game-workspace" class="card hidden">
       <div id="turn-status" class="status-heading">Setting up fleet...</div>
 
       <div class="boards-container">
-        <!-- Player's Own Board (Ship Placement) -->
+        <!-- Player's Own Board -->
         <div class="board-wrapper">
           <h3>Your Waters</h3>
           <div id="my-board" class="grid-board"></div>
         </div>
 
-        <!-- Enemy Board (Target Tracking) -->
+        <!-- Enemy Board -->
         <div class="board-wrapper">
           <h3>Target Waters (Enemy)</h3>
           <div id="enemy-board" class="grid-board"></div>
@@ -71,10 +71,10 @@
 
   <!-- Footer -->
   <footer>
-    <p>&copy; 2026 Built with HTML, CSS, JavaScript, and WebRTC PeerJS.</p>
+    <p>&copy; 2026 Built with HTML, CSS, and JavaScript.</p>
   </footer>
 
-  <!-- External JavaScript file -->
+  <!-- External JavaScript file loaded at bottom to ensure DOM elements exist -->
   <script src="script.js"></script>
 </body>
 </html>
