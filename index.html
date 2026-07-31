@@ -43,9 +43,13 @@
       </div>
     </section>
 
-    <!-- Main Gameplay Workspace (Hidden by default until connected) -->
+    <!-- Main Gameplay Workspace -->
     <section id="game-workspace" class="card hidden">
+      <!-- Status Banner displaying game phases and turn notifications -->
       <div id="turn-status" class="status-heading">Setting up fleet...</div>
+      
+      <!-- Sub-status badge for readiness feedback -->
+      <div id="readiness-banner" class="readiness-tag">Waiting for ship placement...</div>
 
       <div class="boards-container">
         <!-- Player's Own Board -->
@@ -74,7 +78,7 @@
     <p>&copy; 2026 Built with HTML, CSS, and JavaScript.</p>
   </footer>
 
-  <!-- External JavaScript file loaded at bottom to ensure DOM elements exist -->
+  <!-- External JavaScript file -->
   <script src="script.js"></script>
 </body>
 </html>
