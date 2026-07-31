@@ -1,118 +1,258 @@
-// Wait until HTML document is fully loaded before running game logic
 document.addEventListener('DOMContentLoaded', () => {
 
-  const ROWS = 6;
-  const COLS = 7;
-  let boardState = []; // 2D array tracking board contents (null, 'red', or 'yellow')
-  let currentPlayer = 'red'; // Game starts with Red player
-  let gameActive = true;
+  const BOARD_SIZE = 10;
+  // Ships fleet size: Carrier(5), Battleship(4), Cruiser(3), Submarine(3), Destroyer(2)
+  const SHIPS = [5, 4, 3, 3, 2];
 
-  const boardElement = document.getElementById('board');
-  const statusElement = document.getElementById('status');
-  const resetBtn = document.getElementById('reset-btn');
+  let peer = null;
+  let conn = null;
+  let isHost = false;
 
-  // Initialize and render the game board
-  function initBoard() {
-    boardElement.innerHTML = '';
-    boardState = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
-    gameActive = true;
-    currentPlayer = 'red';
-    updateStatusText();
+  // Local & Game state tracking
+  let myBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+  let myShipsPlaced = [];
+  let currentShipIndex = 0;
+  let isHorizontal = true;
+  let isMyTurn = false;
+  let myReady = false;
+  let opponentReady = false;
 
-    // Dynamically build 6x7 grid of cell elements
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.dataset.row = r;
-        cell.dataset.col = c;
-        // Clicking any cell triggers a drop in that column
-        cell.addEventListener('click', () => handleColumnClick(c));
-        boardElement.appendChild(cell);
-      }
-    }
+  // DOM element selectors
+  const lobbySection = document.getElementById('lobby');
+  const gameWorkspace = document.getElementById('game-workspace');
+  const connStatus = document.getElementById('connection-status');
+  const myCodeDisplay = document.getElementById('my-code-display');
+  const joinCodeInput = document.getElementById('join-code-input');
+  const joinBtn = document.getElementById('join-btn');
+  const turnStatus = document.getElementById('turn-status');
+  const myBoardElem = document.getElementById('my-board');
+  const enemyBoardElem = document.getElementById('enemy-board');
+  const rotateBtn = document.getElementById('rotate-btn');
+  const readyBtn = document.getElementById('ready-btn');
+
+  // Generate a random 6-character room code
+  function generateRoomCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
-  // Handle dropping a piece into the selected column
-  function handleColumnClick(col) {
-    if (!gameActive) return;
+  // Initialize PeerJS network connection
+  function initPeer() {
+    const customCode = generateRoomCode();
+    // Using PeerJS public server
+    peer = new Peer(customCode);
 
-    // Gravity effect: Find the lowest empty row in the clicked column
-    let targetRow = -1;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (!boardState[r][col]) {
-        targetRow = r;
-        break;
-      }
-    }
+    peer.on('open', (id) => {
+      myCodeDisplay.textContent = id;
+      connStatus.textContent = "Online! Create a room or join one with a code.";
+    });
 
-    // Column is full, ignore click
-    if (targetRow === -1) return;
+    // Listen for incoming connection from Player 2
+    peer.on('connection', (connection) => {
+      conn = connection;
+      isHost = true;
+      isMyTurn = true; // Host shoots first
+      setupDataListeners();
+      switchToGameScreen();
+    });
 
-    // Update internal state and DOM grid
-    boardState[targetRow][col] = currentPlayer;
-    const targetCell = document.querySelector(`.cell[data-row='${targetRow}'][data-col='${col}']`);
-    targetCell.classList.add(currentPlayer);
+    peer.on('error', (err) => {
+      alert("Network Error: " + err.type);
+    });
+  }
 
-    // Check if this move wins the game
-    if (checkWin(targetRow, col)) {
-      gameActive = false;
-      const winnerName = currentPlayer === 'red' ? 'Red' : 'Yellow';
-      const winnerClass = currentPlayer === 'red' ? 'red-turn' : 'yellow-turn';
-      statusElement.innerHTML = `🎉 Player <span class="${winnerClass}">${winnerName}</span> Wins!`;
+  // Join an existing game host using their room code
+  joinBtn.addEventListener('click', () => {
+    const targetCode = joinCodeInput.value.trim().toUpperCase();
+    if (targetCode.length < 5) {
+      alert("Please enter a valid room code!");
       return;
     }
 
-    // Check for a draw (if board is full)
-    if (boardState.every(row => row.every(cell => cell !== null))) {
-      gameActive = false;
-      statusElement.textContent = "It's a Draw! 🤝";
+    connStatus.textContent = "Connecting to host...";
+    conn = peer.connect(targetCode);
+    isHost = false;
+    isMyTurn = false; // Joiner shoots second
+
+    conn.on('open', () => {
+      setupDataListeners();
+      switchToGameScreen();
+    });
+  });
+
+  // Handle incoming data messages over the Peer-to-Peer network
+  function setupDataListeners() {
+    conn.on('data', (data) => {
+      handleNetworkMessage(data);
+    });
+
+    conn.on('close', () => {
+      alert("Opponent disconnected!");
+      location.reload();
+    });
+  }
+
+  // Switch UI from Lobby to the Battleship Game Screen
+  function switchToGameScreen() {
+    lobbySection.classList.add('hidden');
+    gameWorkspace.classList.remove('hidden');
+    turnStatus.textContent = `Place your ship (Length: ${SHIPS[currentShipIndex]})`;
+    renderGridBoards();
+  }
+
+  // Render initial 10x10 grids for both boards
+  function renderGridBoards() {
+    myBoardElem.innerHTML = '';
+    enemyBoardElem.innerHTML = '';
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        // Player's board cell
+        const myCell = document.createElement('div');
+        myCell.classList.add('cell');
+        myCell.dataset.row = r;
+        myCell.dataset.col = c;
+        myCell.addEventListener('click', () => placeShipSegment(r, c));
+        myBoardElem.appendChild(myCell);
+
+        // Enemy targeting board cell
+        const enemyCell = document.createElement('div');
+        enemyCell.classList.add('cell');
+        enemyCell.dataset.row = r;
+        enemyCell.dataset.col = c;
+        enemyCell.addEventListener('click', () => handleAttack(r, c));
+        enemyBoardElem.appendChild(enemyCell);
+      }
+    }
+  }
+
+  // Rotate ship direction button
+  rotateBtn.addEventListener('click', () => {
+    isHorizontal = !isHorizontal;
+    rotateBtn.textContent = `Rotate Ship (${isHorizontal ? 'Horizontal' : 'Vertical'})`;
+  });
+
+  // Ship Placement Logic
+  function placeShipSegment(r, c) {
+    if (currentShipIndex >= SHIPS.length) return; // All ships already placed
+
+    const shipLen = SHIPS[currentShipIndex];
+
+    // Check if placement is inside bounds and doesn't overlap
+    if (!canPlaceShip(r, c, shipLen, isHorizontal)) {
+      alert("Invalid ship placement!");
       return;
     }
 
-    // Switch active player
-    currentPlayer = currentPlayer === 'red' ? 'yellow' : 'red';
-    updateStatusText();
-  }
+    // Place ship on internal board & update visual UI
+    for (let i = 0; i < shipLen; i++) {
+      const row = isHorizontal ? r : r + i;
+      const col = isHorizontal ? c + i : c;
+      myBoard[row][col] = 1;
 
-  // Update status heading to show whose turn it is
-  function updateStatusText() {
-    const playerText = currentPlayer === 'red' ? 'Red' : 'Yellow';
-    const playerClass = currentPlayer === 'red' ? 'red-turn' : 'yellow-turn';
-    statusElement.innerHTML = `Player <span class="${playerClass}">${playerText}</span>'s Turn`;
-  }
-
-  // Check 4 directional vectors for 4 matching connected pieces
-  function checkWin(row, col) {
-    const directions = [
-      [[0, 1], [0, -1]],   // Horizontal
-      [[1, 0], [-1, 0]],   // Vertical
-      [[1, 1], [-1, -1]],  // Diagonal Down-Right / Up-Left
-      [[1, -1], [-1, 1]]   // Diagonal Down-Left / Up-Right
-    ];
-
-    for (let dir of directions) {
-      let count = 1;
-
-      for (let [dr, dc] of dir) {
-        let r = row + dr;
-        let c = col + dc;
-
-        while (r >= 0 && r < ROWS && c >= 0 && c < COLS && boardState[r][c] === currentPlayer) {
-          count++;
-          r += dr;
-          c += dc;
-        }
-      }
-
-      if (count >= 4) return true;
+      const cell = myBoardElem.querySelector(`[data-row='${row}'][data-col='${col}']`);
+      cell.classList.add('ship');
     }
-    return false;
+
+    currentShipIndex++;
+
+    if (currentShipIndex < SHIPS.length) {
+      turnStatus.textContent = `Place your ship (Length: ${SHIPS[currentShipIndex]})`;
+    } else {
+      turnStatus.textContent = "All ships placed! Click 'Ready Up!' when prepared.";
+      rotateBtn.classList.add('hidden');
+      readyBtn.disabled = false;
+    }
   }
 
-  // Reset board on button click
-  resetBtn.addEventListener('click', initBoard);
+  // Verify if a ship fits without overlapping or going out of bounds
+  function canPlaceShip(r, c, len, horizontal) {
+    if (horizontal && c + len > BOARD_SIZE) return false;
+    if (!horizontal && r + len > BOARD_SIZE) return false;
 
-  // Initialize game on load
-  initBoard();
+    for (let i = 0; i < len; i++) {
+      const row = horizontal ? r : r + i;
+      const col = horizontal ? c + i : c;
+      if (myBoard[row][col] !== 0) return false;
+    }
+    return true;
+  }
+
+  // Ready Up button click handler
+  readyBtn.addEventListener('click', () => {
+    myReady = true;
+    readyBtn.disabled = true;
+    readyBtn.textContent = "Waiting for Opponent...";
+    
+    // Send network signal to opponent
+    conn.send({ type: 'READY' });
+    checkStartGame();
+  });
+
+  // Start match when both players are ready
+  function checkStartGame() {
+    if (myReady && opponentReady) {
+      document.getElementById('setup-controls').classList.add('hidden');
+      updateTurnBanner();
+    }
+  }
+
+  // Attacking the enemy board
+  function handleAttack(r, c) {
+    if (!myReady || !opponentReady || !isMyTurn) return;
+
+    const cell = enemyBoardElem.querySelector(`[data-row='${r}'][data-col='${c}']`);
+    if (cell.classList.contains('hit') || cell.classList.contains('miss')) return; // Already attacked
+
+    // Transmit attack payload to opponent over network
+    conn.send({ type: 'ATTACK', row: r, col: c });
+    isMyTurn = false;
+    turnStatus.textContent = "Waiting for opponent's turn...";
+  }
+
+  // Network Message Dispatcher
+  function handleNetworkMessage(data) {
+    if (data.type === 'READY') {
+      opponentReady = true;
+      checkStartGame();
+    } 
+    else if (data.type === 'ATTACK') {
+      // Opponent attacked us! Check if it's a Hit or Miss
+      const isHit = myBoard[data.row][data.col] === 1;
+      const targetCell = myBoardElem.querySelector(`[data-row='${data.row}'][data-col='${data.col}']`);
+      targetCell.classList.add(isHit ? 'hit' : 'miss');
+
+      // Reply back with the result
+      conn.send({ type: 'ATTACK_RESULT', row: data.row, col: data.col, hit: isHit });
+
+      // Check if all my ships are destroyed
+      if (checkDefeat()) {
+        conn.send({ type: 'GAME_OVER' });
+        turnStatus.textContent = "❌ Defeat! All your ships were destroyed!";
+      } else {
+        isMyTurn = true;
+        updateTurnBanner();
+      }
+    } 
+    else if (data.type === 'ATTACK_RESULT') {
+      // Opponent telling us if our attack was a Hit or Miss
+      const targetCell = enemyBoardElem.querySelector(`[data-row='${data.row}'][data-col='${data.col}']`);
+      targetCell.classList.add(data.hit ? 'hit' : 'miss');
+    }
+    else if (data.type === 'GAME_OVER') {
+      turnStatus.textContent = "🎉 Victory! You sank all enemy battleships!";
+    }
+  }
+
+  function updateTurnBanner() {
+    turnStatus.textContent = isMyTurn ? "🎯 Your Turn: Pick a target on Enemy Waters!" : "⏳ Opponent's Turn: Stand by...";
+  }
+
+  function checkDefeat() {
+    const shipCells = myBoardElem.querySelectorAll('.cell.ship');
+    const hitShipCells = myBoardElem.querySelectorAll('.cell.ship.hit');
+    return shipCells.length > 0 && shipCells.length === hitShipCells.length;
+  }
+
+  // Fire up network connection
+  initPeer();
 });
