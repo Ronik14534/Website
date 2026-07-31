@@ -1,4 +1,199 @@
-document.addEventListener('DOMContentLoaded', () => {
+/* General page setup with dark naval theme */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #0b132b;
+  color: #edf2f4;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 1.5rem 1rem 0.5rem 1rem;
+}
+
+header h1 {
+  margin: 0;
+  color: #38bdf8;
+  font-size: 2.2rem;
+}
+
+header p {
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+main {
+  width: 95%;
+  max-width: 900px;
+  margin: 1rem 0;
+}
+
+/* Card layout & display control */
+.card {
+  background-color: #1c2541;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+/* Strict hidden utility class to prevent lobby/game elements from overlapping */
+.hidden {
+  display: none !important;
+}
+
+/* Lobby Layout */
+.lobby-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.lobby-box {
+  background-color: #0b132b;
+  padding: 1.25rem;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 250px;
+}
+
+.code-display {
+  font-family: monospace;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #38bdf8;
+  letter-spacing: 3px;
+  background-color: #1c2541;
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+  user-select: all;
+}
+
+.small-text {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* Form Controls & Buttons */
+input[type="text"] {
+  width: 80%;
+  padding: 10px;
+  font-size: 1.1rem;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid #3a506b;
+  background-color: #1c2541;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+}
+
+button {
+  background-color: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 10px 18px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin: 0.25rem;
+}
+
+button:hover:not(:disabled) {
+  background-color: #0369a1;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  background-color: #334155;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Gameplay Section */
+.status-heading {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #38bdf8;
+}
+
+.boards-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.board-wrapper h3 {
+  margin-bottom: 0.5rem;
+  color: #cbd5e1;
+}
+
+/* 10x10 Grid Boards */
+.grid-board {
+  display: grid;
+  grid-template-columns: repeat(10, 30px);
+  grid-template-rows: repeat(10, 30px);
+  gap: 2px;
+  background-color: #3a506b;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+/* Individual Grid Cells */
+.cell {
+  width: 30px;
+  height: 30px;
+  background-color: #0b132b;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.cell:hover {
+  background-color: #1c2541;
+}
+
+/* Battleship Cell States */
+.cell.ship {
+  background-color: #64748b;
+}
+
+.cell.hit {
+  background-color: #ef4444 !important;
+}
+
+.cell.miss {
+  background-color: #38bdf8 !important;
+}
+
+footer {
+  margin-top: auto;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+      const row = horizontal ? r : r + i;
+      const col = horizontal ? c + i : c;
+      if (myBoard[row][col] !== 0) return false;
+    }
+    return true;
+  }
+
+  // Ready Up button click handlerdocument.addEventListener('DOMContentLoaded', () => {
 
   const BOARD_SIZE = 10;
   // Ships fleet size: Carrier(5), Battleship(4), Cruiser(3), Submarine(3), Destroyer(2)
@@ -170,14 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!horizontal && r + len > BOARD_SIZE) return false;
 
     for (let i = 0; i < len; i++) {
-      const row = horizontal ? r : r + i;
-      const col = horizontal ? c + i : c;
-      if (myBoard[row][col] !== 0) return false;
-    }
-    return true;
-  }
-
-  // Ready Up button click handler
   readyBtn.addEventListener('click', () => {
     myReady = true;
     readyBtn.disabled = true;
