@@ -3,39 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connect 4 Game | My Personal Website</title>
+  <title>Online Battleship | My Web Arcade</title>
 
-  <!-- Linking the external CSS file for styling -->
+  <!-- External CSS -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- PeerJS Library for Peer-to-Peer Online Multiplayer Networking -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-  <!-- Header section with site title -->
+  <!-- Main header -->
   <header>
-    <h1>Connect 4 Arcade</h1>
-    <p>Play a classic game of Connect 4 right in your browser!</p>
+    <h1>⚓ Online Battleship Arcade</h1>
+    <p>Host or join a game online with a room code!</p>
   </header>
 
-  <!-- Main section holding the game workspace -->
   <main>
-    <section class="game-container">
-      <!-- Dynamic status text showing current player turn or winner message -->
-      <h2 id="status">Player <span id="current-player-text" class="red-turn">Red</span>'s Turn</h2>
-      
-      <!-- Connect 4 Game Board Grid (6 rows x 7 columns generated dynamically) -->
-      <div id="board"></div>
+    <!-- Lobby Control Panel: Host or Join via Room Code -->
+    <section id="lobby" class="card">
+      <h2>Game Lobby</h2>
+      <p id="connection-status">Connecting to network server...</p>
 
-      <!-- Action button to reset or play again -->
-      <button id="reset-btn">Reset Game</button>
+      <div class="lobby-controls">
+        <!-- Room Hosting Section -->
+        <div class="lobby-box">
+          <h3>Host a Game</h3>
+          <p>Your Room Code:</p>
+          <div class="code-display" id="my-code-display">Generating...</div>
+          <p class="small-text">Share this code with your friend!</p>
+        </div>
+
+        <!-- Room Joining Section -->
+        <div class="lobby-box">
+          <h3>Join a Game</h3>
+          <input type="text" id="join-code-input" placeholder="Enter Room Code..." maxlength="6">
+          <button id="join-btn">Join Match</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Gameplay Workspace (Hidden until connected) -->
+    <section id="game-workspace" class="card hidden">
+      <div id="turn-status" class="status-heading">Setting up fleet...</div>
+
+      <div class="boards-container">
+        <!-- Player's Own Board (Ship Placement) -->
+        <div class="board-wrapper">
+          <h3>Your Waters</h3>
+          <div id="my-board" class="grid-board"></div>
+        </div>
+
+        <!-- Enemy Board (Target Tracking) -->
+        <div class="board-wrapper">
+          <h3>Target Waters (Enemy)</h3>
+          <div id="enemy-board" class="grid-board"></div>
+        </div>
+      </div>
+
+      <!-- Controls for Placement & Readiness -->
+      <div id="setup-controls">
+        <button id="rotate-btn">Rotate Ship (Horizontal)</button>
+        <button id="ready-btn" disabled>Ready Up!</button>
+      </div>
     </section>
   </main>
 
-  <!-- Footer section -->
+  <!-- Footer -->
   <footer>
-    <p>&copy; 2026 Built with HTML, CSS, and JavaScript.</p>
+    <p>&copy; 2026 Built with HTML, CSS, JavaScript, and WebRTC PeerJS.</p>
   </footer>
 
-  <!-- External JavaScript file for game engine logic -->
+  <!-- External JavaScript file -->
   <script src="script.js"></script>
 </body>
 </html>
