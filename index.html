@@ -3,39 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Personal Website</title>
+  <title>Connect 4 Game | My Personal Website</title>
 
   <!-- Linking the external CSS file for styling -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Main header section with title and introduction -->
+  <!-- Header section with site title -->
   <header>
-    <h1>Welcome to My Website!</h1>
-    <p>Hi, I'm building my very own site hosted on GitHub Pages.</p>
+    <h1>Connect 4 Arcade</h1>
+    <p>Play a classic game of Connect 4 right in your browser!</p>
   </header>
 
-  <!-- Main content section -->
+  <!-- Main section holding the game workspace -->
   <main>
-    <section class="card">
-      <h2>About Me</h2>
-      <p>I am passionate about learning web development and creating cool projects.</p>
+    <section class="game-container">
+      <!-- Dynamic status text showing current player turn or winner message -->
+      <h2 id="status">Player <span id="current-player-text" class="red-turn">Red</span>'s Turn</h2>
       
-      <!-- Interactive button that triggers JavaScript -->
-      <button id="interactiveBtn">Click For A Surprise!</button>
-      
-      <!-- Container where dynamic message will appear -->
-      <p id="dynamicMessage"></p>
+      <!-- Connect 4 Game Board Grid (6 rows x 7 columns generated dynamically) -->
+      <div id="board"></div>
+
+      <!-- Action button to reset or play again -->
+      <button id="reset-btn">Reset Game</button>
     </section>
   </main>
 
-  <!-- Footer section for copyright or social links -->
+  <!-- Footer section -->
   <footer>
     <p>&copy; 2026 Built with HTML, CSS, and JavaScript.</p>
   </footer>
 
-  <!-- Linking the external JavaScript file at the end of the body for fast page loading -->
+  <!-- External JavaScript file for game engine logic -->
   <script src="script.js"></script>
 </body>
 </html>
