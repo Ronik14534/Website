@@ -42,7 +42,7 @@ main {
   text-align: center;
 }
 
-/* Strict hidden utility class to prevent lobby/game elements from overlapping */
+/* Strict hidden utility class */
 .hidden {
   display: none !important;
 }
@@ -125,8 +125,15 @@ button:disabled {
 .status-heading {
   font-size: 1.4rem;
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
   color: #38bdf8;
+}
+
+.readiness-tag {
+  font-size: 0.95rem;
+  color: #f59e0b;
+  margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .boards-container {
